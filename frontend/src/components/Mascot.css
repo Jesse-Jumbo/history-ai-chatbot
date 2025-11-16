@@ -1,0 +1,114 @@
+.mascot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: 300px;
+}
+
+.mascot {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.face {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.eye {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: #000;
+  border-radius: 50%;
+  top: 60px;
+  animation: blink 4s infinite;
+}
+
+.left-eye {
+  left: 50px;
+}
+
+.right-eye {
+  right: 50px;
+}
+
+@keyframes blink {
+  0%, 90%, 100% {
+    height: 30px;
+  }
+  95% {
+    height: 5px;
+  }
+}
+
+.mouth {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.2s ease;
+}
+
+/* 不同嘴形樣式 */
+.mouth-idle {
+  width: 40px;
+  height: 20px;
+  border: 3px solid #000;
+  border-top: none;
+  border-radius: 0 0 40px 40px;
+}
+
+.mouth-open {
+  width: 50px;
+  height: 60px;
+  border: 3px solid #000;
+  border-radius: 50%;
+  background: #ff6b6b;
+}
+
+.mouth-inner {
+  width: 100%;
+  height: 100%;
+  background: #ff4757;
+  border-radius: 50%;
+}
+
+.mouth-half {
+  width: 45px;
+  height: 30px;
+  border: 3px solid #000;
+  border-top: none;
+  border-radius: 0 0 45px 45px;
+  background: #ff6b6b;
+}
+
+.mouth-close {
+  width: 40px;
+  height: 3px;
+  background: #000;
+  border-radius: 2px;
+}
+
+.mouth-line {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
