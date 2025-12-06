@@ -5,9 +5,12 @@ from typing import Optional, List, Dict
 import uvicorn
 import csv
 import io
-import asyncio
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 from database import (
     get_answer_from_db, 
     add_qa_pair, 
