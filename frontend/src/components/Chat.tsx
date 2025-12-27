@@ -25,8 +25,9 @@ interface Message {
 const Chat: React.FC = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>(() => {
-    // 從 localStorage 載入歷史對話
-    const saved = localStorage.getItem('chatHistory');
+    // 從 sessionStorage 載入歷史對話（只在同一個瀏覽器會話中保持）
+    // 每次重新開啟瀏覽器或重新載入頁面時，歷史記錄會重置
+    const saved = sessionStorage.getItem('chatHistory');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -55,16 +56,33 @@ const Chat: React.FC = () => {
     }
   }, []);
 
-  // 保存對話歷史到 localStorage
+  // 保存對話歷史到 sessionStorage（只在同一個瀏覽器會話中保持）
+  // 切換頁面或重新載入時會保持，但關閉瀏覽器後會重置
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem('chatHistory', JSON.stringify(messages));
+      sessionStorage.setItem('chatHistory', JSON.stringify(messages));
+    } else {
+      // 如果消息為空，清除 sessionStorage
+      sessionStorage.removeItem('chatHistory');
     }
   }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 監聽清空對話事件（當角色設定更新時觸發）
+  useEffect(() => {
+    const handleClearChat = () => {
+      setMessages([]);
+      sessionStorage.removeItem('chatHistory');
+    };
+    
+    window.addEventListener('clearChat', handleClearChat);
+    return () => {
+      window.removeEventListener('clearChat', handleClearChat);
+    };
+  }, []);
 
   const speakText = (text: string) => {
     if (!synth) {
@@ -179,7 +197,7 @@ const Chat: React.FC = () => {
     if (confirm('確定要清除所有對話記錄嗎？')) {
       setMessages([]);
       setExpandedSources(new Set());
-      localStorage.removeItem('chatHistory');
+      sessionStorage.removeItem('chatHistory');
     }
   };
 

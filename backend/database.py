@@ -33,6 +33,16 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+class BotConfig(Base):
+    """機器人配置表（角色/身份設定）"""
+    __tablename__ = "bot_config"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    role_name = Column(String, default="歷史系 AI 助手")  # 角色名稱（如：吳新榮、鄭成功）
+    role_description = Column(Text, nullable=True)  # 角色描述（如：基於吳新榮日記的 QA 機器人）
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
 def get_db():
     db = SessionLocal()
     try:
@@ -44,69 +54,33 @@ def init_db():
     """初始化資料庫，建立表格並遷移現有表結構"""
     Base.metadata.create_all(bind=engine)
     
-    # 遷移現有表結構（添加缺失的列）
+    # 每次啟動時重置機器人配置為默認值
     db = SessionLocal()
     try:
-        # 檢查 documents 表是否有 embedding 列
-        from sqlalchemy import inspect, text
-        inspector = inspect(engine)
-        columns = [col['name'] for col in inspector.get_columns('documents')]
+        config = db.query(BotConfig).first()
+        default_role_name = "成功大學歷史系的對話機器人"
+        default_role_description = "我是成功大學歷史系的對話機器人，專門回答歷史相關問題。我可以結合我的知識和您提供的歷史資料來回答問題。"
         
-        if 'embedding' not in columns:
-            # 添加 embedding 列
-            db.execute(text('ALTER TABLE documents ADD COLUMN embedding TEXT'))
-            db.commit()
-    except Exception as e:
-        # 如果表不存在或其他錯誤，忽略（會在 create_all 中創建）
-        pass
+        if not config:
+            # 如果不存在，創建默認配置
+            config = BotConfig(
+                role_name=default_role_name,
+                role_description=default_role_description
+            )
+            db.add(config)
+        else:
+            # 如果存在，重置為默認值（每次啟動時重置）
+            config.role_name = default_role_name
+            config.role_description = default_role_description
+            config.updated_at = datetime.now()
+        
+        db.commit()
     finally:
         db.close()
     
-    # 插入一些範例資料
-    db = SessionLocal()
-    try:
-        # 檢查是否已有資料
-        if db.query(QAPair).count() == 0:
-            sample_qa = [
-                QAPair(
-                    question="什麼是台灣史？",
-                    answer="台灣史是研究台灣這塊土地及其人民歷史發展的學科，涵蓋原住民文化、荷西時期、明鄭時期、清領時期、日治時期以及戰後至今的歷史變遷。",
-                    category="台灣史"
-                ),
-                QAPair(
-                    question="鄭成功何時來台？",
-                    answer="鄭成功於1661年率軍來台，1662年擊敗荷蘭人，建立明鄭政權。",
-                    category="台灣史"
-                ),
-                QAPair(
-                    question="日治時期從哪一年開始？",
-                    answer="日治時期從1895年開始，至1945年結束，共50年。",
-                    category="台灣史"
-                ),
-            ]
-            db.add_all(sample_qa)
-            db.commit()
-        
-        # 插入範例文檔
-        if db.query(Document).count() == 0:
-            sample_docs = [
-                Document(
-                    title="台灣史概述",
-                    content="台灣歷史可以追溯到數千年前的原住民文化。17世紀初，荷蘭人和西班牙人先後在台灣建立據點。1661年，鄭成功率軍來台，擊敗荷蘭人，建立明鄭政權。1683年，清朝統一台灣。1895年，台灣割讓給日本，開始了50年的日治時期。1945年，台灣光復，回歸中華民國。",
-                    category="台灣史",
-                    source="歷史教科書"
-                ),
-                Document(
-                    title="鄭成功收復台灣",
-                    content="鄭成功（1624-1662），原名鄭森，是明末清初的重要軍事將領。1661年4月，鄭成功率領25000名士兵和數百艘戰艦，從廈門出發，進攻台灣的荷蘭人。經過9個月的圍攻，1662年2月1日，荷蘭總督揆一投降，台灣正式回歸中國。鄭成功在台灣建立政權，實施屯田政策，發展農業，為台灣的開發奠定了基礎。",
-                    category="台灣史",
-                    source="歷史文獻"
-                ),
-            ]
-            db.add_all(sample_docs)
-            db.commit()
-    finally:
-        db.close()
+    # 不再需要 embedding 列，已移除向量搜索功能
+    
+    # 不再插入範例資料，讓使用者自行上傳
 
 def get_answer_from_db(question: str) -> Optional[str]:
     """
@@ -250,40 +224,27 @@ def search_documents(question: str, limit: int = None, use_embedding: bool = Tru
     finally:
         db.close()
 
-def add_document(title: str, content: str, category: str = "general", source: str = "", generate_embedding: bool = True):
+def add_document(title: str, content: str, category: str = "general", source: str = ""):
     """
-    新增文檔到資料庫，並可選生成向量嵌入
+    新增文檔到資料庫
     
     Args:
         title: 文檔標題
         content: 文檔內容
         category: 分類
         source: 來源 ID
-        generate_embedding: 是否生成向量嵌入（預設 True）
     
     Returns:
         文檔 ID
     """
     db = SessionLocal()
     try:
-        embedding = None
-        if generate_embedding and content:
-            try:
-                from embedding_service import get_embedding
-                # 生成 embedding（使用標題+內容，限制長度以避免過長）
-                text_for_embedding = f"{title} {content}"[:2000]  # 限制長度
-                embedding_list = get_embedding(text_for_embedding)
-                if embedding_list:
-                    embedding = json.dumps(embedding_list)
-            except Exception as e:
-                pass
-        
         doc = Document(
             title=title or f"資料-{source}",
             content=content,
             category=category,
             source=source,
-            embedding=embedding
+            embedding=None  # 不再生成 embedding
         )
         db.add(doc)
         db.commit()
@@ -291,92 +252,40 @@ def add_document(title: str, content: str, category: str = "general", source: st
     finally:
         db.close()
 
-def batch_add_documents_from_csv(rows: List[Dict[str, str]], generate_embeddings: bool = True) -> int:
+def batch_add_documents_from_csv(rows: List[Dict[str, str]], generate_embeddings: bool = False) -> int:
     """
-    批量從 CSV 資料新增文檔，並可選批量生成向量嵌入
+    批量從 CSV 資料新增文檔
     
     Args:
         rows: [{"id": "doc_title", "source": "source_id", "text": "content"}, ...]
         - id: 資料名稱（會作為 title）
         - source: 來源 ID（CSV 文件名）
         - text: 內容
-        generate_embeddings: 是否生成向量嵌入（預設 True，但批量生成可能較慢）
+        generate_embeddings: 不再使用，保留參數以保持兼容性
     
     Returns:
         新增的文檔數量
     """
     db = SessionLocal()
     try:
-        from embedding_service import batch_get_embeddings
-        
         count = 0
-        docs_to_add = []
         
-        # 準備文檔數據
+        # 準備文檔數據並直接添加到資料庫
         for row in rows:
             doc_title = row.get("id", "").strip()
             source_id = row.get("source", "").strip()
             text = row.get("text", "").strip()
             
             if doc_title and text and source_id:
-                docs_to_add.append({
-                    "title": doc_title,
-                    "content": text,
-                    "source": source_id
-                })
-        
-        # 批量生成 embeddings（如果啟用）
-        embeddings = None
-        if generate_embeddings and docs_to_add:
-            try:
-                # 先測試 embedding 服務是否可用
-                from embedding_service import get_embedding, batch_get_embeddings
-                test_embedding = get_embedding("測試")
-                if test_embedding is None:
-                    generate_embeddings = False
-                else:
-                    # 準備文本（標題+內容）
-                    texts_for_embedding = [
-                        f"{doc['title']} {doc['content']}"[:2000]
-                        for doc in docs_to_add
-                    ]
-                    
-                    total_docs = len(texts_for_embedding)
-                    
-                    # 根據文檔數量調整並行線程數
-                    # 小文件用較少線程，大文件用較多線程（但最多 8 個）
-                    if total_docs < 50:
-                        max_workers = 3
-                    elif total_docs < 200:
-                        max_workers = 5
-                    else:
-                        max_workers = 8  # 大文件用更多並行線程
-                    
-                    embeddings = batch_get_embeddings(
-                        texts_for_embedding, 
-                        batch_size=5,  # 保留參數但不再使用
-                        max_workers=max_workers,
-                        show_progress=False
-                    )
-            except Exception as e:
-                embeddings = None
-                generate_embeddings = False
-        
-        # 添加文檔到資料庫
-        for i, doc_data in enumerate(docs_to_add):
-            embedding = None
-            if embeddings and i < len(embeddings) and embeddings[i]:
-                embedding = json.dumps(embeddings[i])
-            
-            doc = Document(
-                title=doc_data["title"],
-                content=doc_data["content"],
-                category="CSV導入",
-                source=doc_data["source"],
-                embedding=embedding
-            )
-            db.add(doc)
-            count += 1
+                doc = Document(
+                    title=doc_title,
+                    content=text,
+                    category="CSV導入",
+                    source=source_id,
+                    embedding=None  # 不再生成 embedding
+                )
+                db.add(doc)
+                count += 1
         
         db.commit()
         return count
@@ -398,6 +307,87 @@ def get_all_documents():
             "source": doc.source,
             "created_at": doc.created_at.isoformat() if doc.created_at else None
         } for doc in docs]
+    finally:
+        db.close()
+
+def get_all_documents_with_content():
+    """獲取所有文檔及其內容（用於 Gemini API）"""
+    db = SessionLocal()
+    try:
+        docs = db.query(Document).all()
+        # 按來源分組
+        source_map = {}
+        for doc in docs:
+            source_id = doc.source or "unknown"
+            if source_id not in source_map:
+                source_map[source_id] = []
+            source_map[source_id].append({
+                "title": doc.title,
+                "content": doc.content or ""
+            })
+        
+        # 轉換為列表格式
+        result = []
+        for source_id, doc_list in source_map.items():
+            # 合併同一來源的所有內容
+            all_titles = [d["title"] for d in doc_list if d["title"]]
+            all_content = "\n\n".join([
+                f"{d['title']}\n{d['content']}" if d['title'] else d['content']
+                for d in doc_list
+                if d['content']
+            ])
+            
+            result.append({
+                "source": source_id,
+                "title": ", ".join(all_titles[:5]) if all_titles else "無標題",
+                "content": all_content,
+                "doc_titles": all_titles
+            })
+        
+        return result
+    finally:
+        db.close()
+
+
+def get_elderly_documents_with_content():
+    """只獲取老人訪談文檔（category=elderly_interview），按來源合併內容"""
+    db = SessionLocal()
+    try:
+        docs = db.query(Document).filter(Document.category == "elderly_interview").all()
+        if not docs:
+            return []
+
+        source_map: Dict[str, List[Dict[str, str]]] = {}
+        for doc in docs:
+            source_id = doc.source or "unknown"
+            if source_id not in source_map:
+                source_map[source_id] = []
+            source_map[source_id].append(
+                {
+                    "title": doc.title,
+                    "content": doc.content or "",
+                }
+            )
+
+        result = []
+        for source_id, doc_list in source_map.items():
+            all_titles = [d["title"] for d in doc_list if d["title"]]
+            all_content = "\n\n".join(
+                f"{d['title']}\n{d['content']}" if d["title"] else d["content"]
+                for d in doc_list
+                if d["content"]
+            )
+
+            result.append(
+                {
+                    "source": source_id,
+                    "title": ", ".join(all_titles[:5]) if all_titles else "無標題",
+                    "content": all_content,
+                    "doc_titles": all_titles,
+                }
+            )
+
+        return result
     finally:
         db.close()
 
@@ -426,6 +416,40 @@ def add_qa_pair(question: str, answer: str, category: str = "general"):
     try:
         qa = QAPair(question=question, answer=answer, category=category)
         db.add(qa)
+        db.commit()
+    finally:
+        db.close()
+
+def get_bot_config() -> Dict:
+    """獲取機器人配置（角色/身份）"""
+    db = SessionLocal()
+    try:
+        config = db.query(BotConfig).first()
+        if not config:
+            return {
+                "role_name": "成功大學歷史系的對話機器人",
+                "role_description": "我是成功大學歷史系的對話機器人，專門回答歷史相關問題。我可以結合我的知識和您提供的歷史資料來回答問題。"
+            }
+        return {
+            "role_name": config.role_name,
+            "role_description": config.role_description or ""
+        }
+    finally:
+        db.close()
+
+def update_bot_config(role_name: str, role_description: str = None):
+    """更新機器人配置（角色/身份）"""
+    db = SessionLocal()
+    try:
+        config = db.query(BotConfig).first()
+        if not config:
+            config = BotConfig(role_name=role_name, role_description=role_description)
+            db.add(config)
+        else:
+            config.role_name = role_name
+            if role_description is not None:
+                config.role_description = role_description
+            config.updated_at = datetime.now()
         db.commit()
     finally:
         db.close()
