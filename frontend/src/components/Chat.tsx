@@ -6,7 +6,8 @@ import Subtitle from './Subtitle';
 import './Chat.css';
 
 // 從環境變數獲取 API 地址，如果沒有則使用默認值
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Vite 使用 import.meta.env 而不是 process.env
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface SourceDetail {
   source: string;

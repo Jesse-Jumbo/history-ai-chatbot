@@ -5,8 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',  // 允許從外部訪問
     port: 3000,
-    open: true
+    open: false  // 遠端部署時不自動打開瀏覽器
   }
 })
 
