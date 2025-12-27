@@ -4,11 +4,12 @@ import './Mascot.css';
 interface MascotProps {
   isSpeaking: boolean;
   text: string; // 當前正在說的話
+  agedPhotoUrl?: string | null; // 變老後的照片 URL（base64 或 URL）
 }
 
 type MouthShape = 'idle' | 'open' | 'half' | 'close';
 
-const Mascot: React.FC<MascotProps> = ({ isSpeaking, text }) => {
+const Mascot: React.FC<MascotProps> = ({ isSpeaking, text, agedPhotoUrl }) => {
   const [mouthShape, setMouthShape] = useState<MouthShape>('idle');
 
   useEffect(() => {
@@ -26,6 +27,26 @@ const Mascot: React.FC<MascotProps> = ({ isSpeaking, text }) => {
 
     return () => clearInterval(interval);
   }, [isSpeaking, text]);
+
+  // 如果有變老後的照片，顯示照片；否則顯示動畫頭像
+  if (agedPhotoUrl) {
+    return (
+      <div className="mascot-container">
+        <div className="mascot-photo">
+          <img 
+            src={agedPhotoUrl} 
+            alt="變老後的自己" 
+            className="aged-photo"
+          />
+          {isSpeaking && (
+            <div className="speaking-indicator">
+              <span className="speaking-dot"></span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mascot-container">

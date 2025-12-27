@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse, StreamingResponse
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,6 +7,11 @@ from typing import Optional, List, Dict
 import uvicorn
 import csv
 import io
+import os
+import sys
+import base64
+from pathlib import Path
+import httpx
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -25,12 +31,55 @@ from database import (
 )
 from ai_service import generate_answer_with_ai
 
+# 導入 TTS 模組（從根目錄）
+ROOT_DIR = Path(__file__).resolve().parent.parent
+TTS_MODULE_PATH = ROOT_DIR / "tts_google.py"
+if TTS_MODULE_PATH.exists():
+    sys.path.insert(0, str(ROOT_DIR))
+    try:
+        from tts_google import tts_text_to_wav
+    except ImportError as e:
+        print(f"警告：無法導入 tts_google 模組：{e}")
+        tts_text_to_wav = None
+else:
+    tts_text_to_wav = None
+    print(f"警告：找不到 tts_google.py 在 {TTS_MODULE_PATH}")
+
+# SAGE API 配置（如果 SAGE 在遠端機器）
+SAGE_API_URL = os.getenv("SAGE_API_URL", "http://localhost:8001")  # SAGE 預設在 8001 端口
+
 app = FastAPI(title="歷史系 AI 對話機器人")
 
 # 啟動時初始化資料庫（包括遷移）
 @app.on_event("startup")
 async def startup_event():
     init_db()
+    
+    # 檢查 SAGE API 連接
+    print("\n" + "=" * 60)
+    print("  檢查 SAGE API 連接...")
+    print("=" * 60)
+    print(f"  SAGE API URL: {SAGE_API_URL}")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{SAGE_API_URL}/status")
+            if response.status_code == 200:
+                data = response.json()
+                print(f"  ✅ SAGE API 連接成功")
+                print(f"     狀態: {data.get('status', 'unknown')}")
+                print(f"     GPU: {'可用' if data.get('gpu_available') else '不可用'}")
+            else:
+                print(f"  ⚠️  SAGE API 響應異常 (狀態碼: {response.status_code})")
+    except httpx.ConnectError:
+        print(f"  ❌ 無法連接到 SAGE API ({SAGE_API_URL})")
+        print(f"     請確認：")
+        print(f"     1. SAGE API 服務是否正在運行")
+        print(f"     2. SAGE_API_URL 配置是否正確")
+        print(f"     3. 如果 SAGE 在遠端，確認網路連接")
+        print(f"     提示：執行 'python test_sage_connection.py' 進行詳細診斷")
+    except Exception as e:
+        print(f"  ⚠️  檢查 SAGE API 時發生錯誤: {str(e)}")
+    print("=" * 60 + "\n")
 
 
 # CORS 設定
@@ -120,6 +169,176 @@ async def update_bot_config_endpoint(request: BotConfigRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============== TTS API ==============
+
+class TTSRequest(BaseModel):
+    text: str
+    lang: str = "zh-TW"
+    voice_name: Optional[str] = None
+    rate: float = 0.9  # 老人聲音稍慢
+    pitch: float = -2.0  # 老人聲音較低
+
+@app.post("/api/tts")
+async def text_to_speech(request: TTSRequest):
+    """文字轉語音（使用 Google TTS）"""
+    if not tts_text_to_wav:
+        raise HTTPException(status_code=503, detail="TTS 服務未配置，請確認 tts_google.py 存在且 GOOGLE_APPLICATION_CREDENTIALS 已設定")
+    
+    try:
+        # 生成臨時 WAV 檔案
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        output_filename = f"tts_{timestamp}.wav"
+        output_dir = Path(__file__).resolve().parent / "output"
+        output_dir.mkdir(exist_ok=True)
+        
+        # 調用 TTS
+        wav_path = tts_text_to_wav(
+            text=request.text,
+            out=output_filename,
+            out_dir=output_dir,
+            lang=request.lang,
+            voice_name=request.voice_name,
+            rate=request.rate,
+            pitch=request.pitch,
+            sr=24000
+        )
+        
+        # 返回音訊檔案
+        return FileResponse(
+            str(wav_path),
+            media_type="audio/wav",
+            filename=output_filename
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS 生成失敗：{str(e)}")
+
+# ============== SAGE API 代理 ==============
+
+class AgePhotoRequest(BaseModel):
+    image_base64: str
+    target_age: int = 75
+    mock: bool = False  # 預設使用真實模型
+
+@app.post("/api/age-photo")
+async def age_photo_proxy(request: AgePhotoRequest):
+    """代理 SAGE API：變老照片"""
+    try:
+        # 檢查圖片大小（避免過大）
+        if len(request.image_base64) > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(status_code=400, detail="圖片過大，請使用較小的圖片")
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 分鐘超時（變老處理需要時間）
+            try:
+                response = await client.post(
+                    f"{SAGE_API_URL}/age/photo",
+                    json={
+                        "image_base64": request.image_base64,
+                        "target_age": request.target_age,
+                        "mock": request.mock
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.ConnectError as e:
+                error_msg = (
+                    f"無法連接到 SAGE API ({SAGE_API_URL})。"
+                    f"請確認：\n"
+                    f"1. SAGE API 服務是否正在運行\n"
+                    f"2. SAGE_API_URL 配置是否正確（當前：{SAGE_API_URL})\n"
+                    f"3. 網路連接是否正常\n"
+                    f"錯誤詳情：{str(e)}"
+                )
+                raise HTTPException(status_code=503, detail=error_msg)
+            except httpx.TimeoutException:
+                raise HTTPException(status_code=504, detail="SAGE API 請求超時，變老處理可能需要較長時間（最多 5 分鐘）")
+            except httpx.HTTPStatusError as e:
+                error_detail = f"SAGE API 返回錯誤 {e.response.status_code}"
+                try:
+                    error_json = e.response.json()
+                    if "detail" in error_json:
+                        error_detail += f": {error_json['detail']}"
+                    else:
+                        error_detail += f": {error_json}"
+                except:
+                    error_detail += f": {e.response.text[:200]}"
+                raise HTTPException(status_code=e.response.status_code, detail=error_detail)
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = (
+            f"處理請求時發生錯誤：{str(e)}\n"
+            f"SAGE API URL: {SAGE_API_URL}\n"
+            f"請檢查後端日誌以獲取更多資訊"
+        )
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.post("/api/capture-and-age")
+async def capture_and_age_proxy(
+    file: UploadFile = File(...),
+    target_age: int = Form(75),
+    mock: bool = Form(False)
+):
+    """代理 SAGE API：上傳照片並變老"""
+    try:
+        # 讀取上傳的檔案
+        contents = await file.read()
+        image_base64 = base64.b64encode(contents).decode('utf-8')
+        
+        # 調用變老 API
+        request = AgePhotoRequest(
+            image_base64=image_base64,
+            target_age=target_age,
+            mock=mock
+        )
+        return await age_photo_proxy(request)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"處理失敗：{str(e)}")
+
+@app.get("/api/sage-status")
+async def sage_status():
+    """檢查 SAGE API 狀態"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            try:
+                response = await client.get(f"{SAGE_API_URL}/status")
+                response.raise_for_status()
+                status_data = response.json()
+                status_data["connected"] = True
+                status_data["sage_api_url"] = SAGE_API_URL
+                return status_data
+            except httpx.ConnectError as e:
+                return {
+                    "status": "offline",
+                    "connected": False,
+                    "error": f"無法連接到 SAGE API: {str(e)}",
+                    "sage_api_url": SAGE_API_URL,
+                    "suggestion": "請確認 SAGE API 服務是否正在運行，以及 SAGE_API_URL 配置是否正確"
+                }
+            except httpx.TimeoutException:
+                return {
+                    "status": "timeout",
+                    "connected": False,
+                    "error": "連接超時",
+                    "sage_api_url": SAGE_API_URL
+                }
+            except httpx.HTTPStatusError as e:
+                return {
+                    "status": "error",
+                    "connected": False,
+                    "error": f"SAGE API 返回錯誤 {e.response.status_code}: {e.response.text[:200]}",
+                    "sage_api_url": SAGE_API_URL
+                }
+    except Exception as e:
+        return {
+            "status": "error",
+            "connected": False,
+            "error": str(e),
+            "sage_api_url": SAGE_API_URL
+        }
+
 @app.post("/api/ask", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
     """
@@ -176,20 +395,20 @@ async def ask_question(request: QuestionRequest):
                 raise HTTPException(status_code=500, detail=f"AI 服務錯誤：{str(e)}")
         else:
             # 如果不使用 AI，返回第一個文檔的內容
-            if all_documents:
-                source_ids = [doc.get("source", "") for doc in all_documents if doc.get("source")]
+            if documents_for_ai:
+                source_ids = [doc.get("source", "") for doc in documents_for_ai if doc.get("source")]
                 source_details = [
                     {
                         "source": doc.get("source", ""),
                         "doc_titles": doc.get("doc_titles", [])
                     }
-                    for doc in all_documents
+                    for doc in documents_for_ai
                     if doc.get("source")
                 ]
                 return QuestionResponse(
-                    answer=all_documents[0].get("content", ""),
+                    answer=documents_for_ai[0].get("content", ""),
                     source="documents",
-                    documents_used=all_documents,
+                    documents_used=documents_for_ai,
                     source_ids=source_ids,
                     source_details=source_details if source_details else None
                 )
@@ -209,9 +428,6 @@ async def ask_question(request: QuestionRequest):
 async def add_qa(request: QuestionRequest):
     """新增問答對到資料庫（管理用）"""
     try:
-        # 檢查請求頻率限制
-        check_rate_limit()
-        
         # 獲取機器人配置
         bot_config = get_bot_config()
         

@@ -90,3 +90,11 @@ logs/
 # PDF files (if not needed)
 *.pdf
 
+# TTS output files
+backend/output/
+*.wav
+
+# Google credentials (keep .env.example)
+**/google-credentials.json
+**/*-credentials.json
+
