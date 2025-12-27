@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict
+from contextlib import asynccontextmanager
 import uvicorn
 import csv
 import io
@@ -48,11 +49,10 @@ else:
 # SAGE API 配置（如果 SAGE 在遠端機器）
 SAGE_API_URL = os.getenv("SAGE_API_URL", "http://localhost:8001")  # SAGE 預設在 8001 端口
 
-app = FastAPI(title="歷史系 AI 對話機器人")
-
-# 啟動時初始化資料庫（包括遷移）
-@app.on_event("startup")
-async def startup_event():
+# 啟動和關閉事件處理
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 啟動時
     init_db()
     
     # 檢查 SAGE API 連接
@@ -80,6 +80,12 @@ async def startup_event():
     except Exception as e:
         print(f"  ⚠️  檢查 SAGE API 時發生錯誤: {str(e)}")
     print("=" * 60 + "\n")
+    
+    yield
+    
+    # 關閉時（如果需要清理資源）
+
+app = FastAPI(title="歷史系 AI 對話機器人", lifespan=lifespan)
 
 
 # CORS 設定
