@@ -34,8 +34,11 @@ dlib>=19.22.0
 gdown>=4.7.0
 
 # Diffusion Models (for FADING)
-diffusers>=0.27.0
-transformers>=4.36.0
+# 注意：使用兼容的版本組合以避免依賴衝突
+# diffusers 0.21.0 與 transformers 4.35.0 和較舊的 huggingface_hub 兼容
+diffusers==0.21.0
+transformers==4.35.0  # 使用較舊版本以兼容 PyTorch 2.5
+huggingface_hub>=0.16.0,<0.20.0  # 兼容 diffusers 0.21.0
 accelerate>=0.20.0
 
 # API & Web Server
