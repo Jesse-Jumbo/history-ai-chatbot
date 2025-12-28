@@ -64,11 +64,27 @@ class FADINGProcessor:
 
             # 載入擴散模型
             print(f"[FADING] 載入模型: {FADING_MODEL_PATH}")
-            self.model = StableDiffusionPipeline.from_pretrained(
-                str(FADING_MODEL_PATH),
-                scheduler=scheduler,
-                safety_checker=None
-            ).to(self.device)
+            
+            # 允許使用 pickle 格式（如果沒有 safetensors）
+            # 設置環境變數以允許不安全的載入（僅用於本地模型）
+            import os
+            original_safe_loading = os.environ.get('TRANSFORMERS_SAFE_LOADING', None)
+            os.environ['TRANSFORMERS_SAFE_LOADING'] = 'false'
+            
+            try:
+                self.model = StableDiffusionPipeline.from_pretrained(
+                    str(FADING_MODEL_PATH),
+                    scheduler=scheduler,
+                    safety_checker=None,
+                    use_safetensors=False,  # 允許使用 pickle 格式
+                    local_files_only=True   # 只使用本地文件
+                ).to(self.device)
+            finally:
+                # 恢復原始設置
+                if original_safe_loading is None:
+                    os.environ.pop('TRANSFORMERS_SAFE_LOADING', None)
+                else:
+                    os.environ['TRANSFORMERS_SAFE_LOADING'] = original_safe_loading
 
             self.tokenizer = self.model.tokenizer
 
