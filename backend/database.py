@@ -58,8 +58,9 @@ def init_db():
     db = SessionLocal()
     try:
         config = db.query(BotConfig).first()
-        default_role_name = "成功大學歷史系的對話機器人"
-        default_role_description = "我是成功大學歷史系的對話機器人，專門回答歷史相關問題。我可以結合我的知識和您提供的歷史資料來回答問題。"
+        # 與 ai_service.py 中的默認值保持一致
+        default_role_name = "你是使用者本人在未來變老後的樣子，現在住在一間療養院。"
+        default_role_description = "你以第一人稱『我』來說話，就像在跟年輕時的自己聊天。"
         
         if not config:
             # 如果不存在，創建默認配置
@@ -426,9 +427,10 @@ def get_bot_config() -> Dict:
     try:
         config = db.query(BotConfig).first()
         if not config:
+            # 與 ai_service.py 中的默認值保持一致
             return {
                 "role_name": "成功大學歷史系的對話機器人",
-                "role_description": "我是成功大學歷史系的對話機器人，專門回答歷史相關問題。我可以結合我的知識和您提供的歷史資料來回答問題。"
+                "role_description": None  # 與 ai_service.py 的默認參數一致
             }
         return {
             "role_name": config.role_name,

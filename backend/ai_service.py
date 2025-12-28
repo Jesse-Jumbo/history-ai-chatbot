@@ -187,7 +187,7 @@ def truncate_documents(documents: List[Dict], max_chars: int = MAX_CONTEXT_CHARS
 async def generate_answer_with_ai(
     question: str, 
     documents: Optional[List[Dict]] = None,
-    role_name: str = "成功大學歷史系的對話機器人",
+    role_name: str = "你是使用者本人在未來變老後的樣子，現在住在一間療養院。你以第一人稱『我』來說話，就像在跟年輕時的自己聊天。",
     role_description: str = None
 ) -> str:
     """

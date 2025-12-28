@@ -27,6 +27,7 @@ import re
 import sys
 import wave
 from pathlib import Path
+from typing import Optional, Union
 
 from dotenv import load_dotenv
 from tqdm import tqdm
@@ -91,12 +92,12 @@ def list_voices(client: texttospeech.TextToSpeechClient, lang: str):
 
 def tts_to_wav(
     *,
-    text: str | None = None,
-    text_file: str | Path | None = None,
-    out: str | Path = "out.wav",
-    out_dir: str | Path = "output",
+    text: Optional[str] = None,
+    text_file: Optional[Union[str, Path]] = None,
+    out: Union[str, Path] = "out.wav",
+    out_dir: Union[str, Path] = "output",
     lang: str = "zh-TW",
-    voice_name: str | None = None,
+    voice_name: Optional[str] = None,
     rate: float = 1.0,
     pitch: float = 0.0,
     sr: int = 24000,
@@ -143,10 +144,10 @@ def tts_to_wav(
 def tts_text_to_wav(
     text: str,
     *,
-    out: str | Path = "out.wav",
-    out_dir: str | Path = "output",
+    out: Union[str, Path] = "out.wav",
+    out_dir: Union[str, Path] = "output",
     lang: str = "zh-TW",
-    voice_name: str | None = None,
+    voice_name: Optional[str] = None,
     rate: float = 1.0,
     pitch: float = 0.0,
     sr: int = 24000,
@@ -165,12 +166,12 @@ def tts_text_to_wav(
 
 
 def tts_txt_to_wav(
-    text_file: str | Path,
+    text_file: Union[str, Path],
     *,
-    out: str | Path = "out.wav",
-    out_dir: str | Path = "output",
+    out: Union[str, Path] = "out.wav",
+    out_dir: Union[str, Path] = "output",
     lang: str = "zh-TW",
-    voice_name: str | None = None,
+    voice_name: Optional[str] = None,
     rate: float = 1.0,
     pitch: float = 0.0,
     sr: int = 24000,
@@ -203,7 +204,7 @@ def synthesize(
     text: str,
     out_path: Path,
     lang: str,
-    voice_name: str | None,
+    voice_name: Optional[str],
     rate: float,
     pitch: float,
     sample_rate: int,
