@@ -55,6 +55,35 @@ async def lifespan(app: FastAPI):
     # 啟動時
     init_db()
     
+    # 自動導入訪談資料
+    print("\n" + "=" * 60)
+    print("  檢查並導入訪談資料...")
+    print("=" * 60)
+    try:
+        # 檢查導入腳本是否存在
+        import_script = Path(__file__).resolve().parent / "import_elderly_interviews.py"
+        transcripts_dir = Path(__file__).resolve().parent / "訪談逐字稿"
+        
+        if import_script.exists() and transcripts_dir.exists():
+            # 動態導入並執行
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("import_elderly_interviews", import_script)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                if hasattr(module, 'import_elderly_interviews'):
+                    module.import_elderly_interviews()
+                    print("  ✅ 訪談資料檢查完成")
+        else:
+            if not transcripts_dir.exists():
+                print(f"  ⚠️  訪談資料夾不存在: {transcripts_dir}")
+            else:
+                print(f"  ⚠️  導入腳本不存在: {import_script}")
+    except Exception as e:
+        print(f"  ⚠️  導入訪談資料時發生錯誤: {str(e)}")
+        print("     可以手動執行: python import_elderly_interviews.py")
+    print("=" * 60)
+    
     # 檢查 SAGE API 連接
     print("\n" + "=" * 60)
     print("  檢查 SAGE API 連接...")
