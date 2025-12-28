@@ -273,6 +273,11 @@ async def age_photo_proxy(request: AgePhotoRequest):
         
         async with httpx.AsyncClient(timeout=300.0) as client:  # 5 分鐘超時（變老處理需要時間）
             try:
+                # 記錄請求資訊（調試用）
+                print(f"[DEBUG] 發送請求到 SAGE API: {SAGE_API_URL}/age/photo")
+                print(f"[DEBUG] 圖片大小: {len(request.image_base64)} 字符")
+                print(f"[DEBUG] 目標年齡: {request.target_age}, Mock: {request.mock}")
+                
                 response = await client.post(
                     f"{SAGE_API_URL}/age/photo",
                     json={
@@ -280,23 +285,35 @@ async def age_photo_proxy(request: AgePhotoRequest):
                         "target_age": request.target_age,
                         "mock": request.mock
                     },
-                    headers={"Content-Type": "application/json"}
+                    headers={"Content-Type": "application/json"},
+                    timeout=300.0
                 )
+                
+                print(f"[DEBUG] SAGE API 響應狀態碼: {response.status_code}")
                 response.raise_for_status()
-                return response.json()
+                
+                result = response.json()
+                print(f"[DEBUG] SAGE API 返回成功: {result.get('success', False)}")
+                return result
             except httpx.ConnectError as e:
+                print(f"[ERROR] 連接錯誤: {str(e)}")
+                print(f"[ERROR] SAGE API URL: {SAGE_API_URL}")
                 error_msg = (
                     f"無法連接到 SAGE API ({SAGE_API_URL})。"
                     f"請確認：\n"
                     f"1. SAGE API 服務是否正在運行\n"
                     f"2. SAGE_API_URL 配置是否正確（當前：{SAGE_API_URL})\n"
                     f"3. 網路連接是否正常\n"
+                    f"4. 防火牆是否允許連接\n"
                     f"錯誤詳情：{str(e)}"
                 )
                 raise HTTPException(status_code=503, detail=error_msg)
-            except httpx.TimeoutException:
+            except httpx.TimeoutException as e:
+                print(f"[ERROR] 請求超時: {str(e)}")
                 raise HTTPException(status_code=504, detail="SAGE API 請求超時，變老處理可能需要較長時間（最多 5 分鐘）")
             except httpx.HTTPStatusError as e:
+                print(f"[ERROR] HTTP 錯誤: {e.response.status_code}")
+                print(f"[ERROR] 響應內容: {e.response.text[:500]}")
                 error_detail = f"SAGE API 返回錯誤 {e.response.status_code}"
                 try:
                     error_json = e.response.json()

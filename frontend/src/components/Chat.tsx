@@ -95,6 +95,9 @@ const Chat: React.FC = () => {
     const handleClearChat = () => {
       setMessages([]);
       sessionStorage.removeItem('chatHistory');
+      // 同時清除變老照片
+      setAgedPhotoUrl(null);
+      sessionStorage.removeItem('agedPhotoUrl');
     };
     
     window.addEventListener('clearChat', handleClearChat);
@@ -102,6 +105,28 @@ const Chat: React.FC = () => {
       window.removeEventListener('clearChat', handleClearChat);
     };
   }, []);
+
+  // 移除答案中的來源資訊，避免語音讀出來
+  const removeSourceInfo = (text: string): string => {
+    if (!text) return text;
+    
+    // 移除各種來源格式
+    // 例如：來源：xxx、來源: xxx、(來源: xxx)、【來源：xxx】等
+    let cleaned = text
+      // 移除 【來源：xxx】格式
+      .replace(/【來源[：:]\s*[^】]+】/g, '')
+      // 移除 (來源: xxx) 格式
+      .replace(/\(來源[：:]\s*[^)]+\)/g, '')
+      // 移除 來源：xxx 格式（獨立行）
+      .replace(/^來源[：:]\s*[^\n]+$/gm, '')
+      // 移除包含「來源」的整行
+      .replace(/^.*來源[：:].*$/gm, '')
+      // 清理多餘的空白行
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    
+    return cleaned;
+  };
 
   const speakText = async (text: string) => {
     // 停止之前的語音
@@ -227,8 +252,9 @@ const Chat: React.FC = () => {
           : msg
       ));
 
-      // 播放語音
-      speakText(answer);
+      // 播放語音（移除來源資訊）
+      const textForSpeech = removeSourceInfo(answer);
+      speakText(textForSpeech);
 
     } catch (error) {
       console.error('Error:', error);
@@ -367,19 +393,39 @@ const Chat: React.FC = () => {
       } else {
         throw new Error('變老處理失敗');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('變老處理失敗:', error);
-      alert('變老處理失敗，請稍後再試');
+      
+      // 顯示詳細錯誤訊息
+      let errorMessage = '變老處理失敗，請稍後再試';
+      
+      if (error.response) {
+        // 後端返回的錯誤
+        const detail = error.response.data?.detail || error.response.data?.message || '';
+        if (detail) {
+          errorMessage = `變老處理失敗：\n${detail}`;
+        } else {
+          errorMessage = `變老處理失敗（狀態碼：${error.response.status}）`;
+        }
+      } else if (error.message) {
+        errorMessage = `變老處理失敗：\n${error.message}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsProcessingPhoto(false);
     }
   };
 
   const clearHistory = () => {
-    if (confirm('確定要清除所有對話記錄嗎？')) {
+    if (confirm('確定要清除所有對話記錄嗎？清除後可以重新拍照。')) {
       setMessages([]);
       setExpandedSources(new Set());
       sessionStorage.removeItem('chatHistory');
+      
+      // 清除變老照片，讓用戶可以重新拍照
+      setAgedPhotoUrl(null);
+      sessionStorage.removeItem('agedPhotoUrl');
     }
   };
 
@@ -399,7 +445,7 @@ const Chat: React.FC = () => {
     <div className="chat-container">
       <div className="chat-main">
         <div className="chat-header-actions">
-          {messages.length > 0 && (
+          {(messages.length > 0 || agedPhotoUrl) && (
             <button onClick={clearHistory} className="clear-history-button">
               🗑️ 清除記錄
             </button>
