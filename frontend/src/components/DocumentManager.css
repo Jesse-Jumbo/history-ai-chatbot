@@ -1,13 +1,104 @@
 .document-manager {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   max-width: 1200px;
-  margin: 20px auto;
+  margin: 0 auto;
+  width: 100%;
   padding: 20px;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.document-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 20px;
+  padding: 0;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-height: calc(100vh - 200px);
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+
+.document-main > .tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px 10px 20px;
+  flex-shrink: 0;
+}
+
+.document-main > .tabs-container .tabs-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.document-main > .tabs-container .tabs-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.document-main > .tabs-container .tab-button {
+  padding: 8px 24px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.document-main > .tabs-container .tab-button:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.document-main > .tabs-container .tab-button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.document-main > .document-header {
+  flex-shrink: 0;
+  padding: 0 20px 15px 20px;
+}
+
+.document-main > .document-form {
+  flex-shrink: 0;
+  margin: 0 20px 20px 20px;
+}
+
+.document-main > .documents-list {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 0;
+  padding: 0 20px 20px 20px;
+}
+
+.document-manager > .document-header {
+  flex-shrink: 0;
+}
+
+.document-manager > .document-form {
+  flex-shrink: 0;
+}
+
+.document-manager > .documents-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .document-manager::-webkit-scrollbar {
@@ -213,9 +304,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  max-height: 600px;
-  overflow-y: auto;
-  overflow-x: hidden;
   padding: 10px;
   margin-top: 10px;
 }

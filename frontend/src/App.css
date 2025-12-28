@@ -7,22 +7,26 @@
 
 .App-header {
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  text-align: center;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   color: white;
   backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
-.App-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 15px;
+.app-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .tabs {
   display: flex;
   gap: 10px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .tabs button {

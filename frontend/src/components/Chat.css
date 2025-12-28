@@ -6,10 +6,9 @@
   margin: 0 auto;
   width: 100%;
   padding: 20px;
-  height: calc(100vh - 180px);
   min-height: 0;
-  max-height: calc(100vh - 180px);
   overflow: hidden;
+  height: 100%;
 }
 
 .chat-main {
@@ -23,6 +22,50 @@
   overflow: hidden;
   min-height: 0;
   height: 100%;
+}
+
+.tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px 10px 20px;
+  flex-shrink: 0;
+}
+
+.tabs-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tabs-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tab-button {
+  padding: 8px 24px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.tab-button:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: rgba(102, 126, 234, 0.5);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  font-weight: 600;
 }
 
 .chat-header-actions {
@@ -49,7 +92,7 @@
 
 .welcome-message {
   text-align: center;
-  padding: 40px 20px;
+  padding: 20px;
   color: #666;
 }
 
@@ -62,11 +105,13 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px;
+  padding: 15px 20px;
   min-height: 0;
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
+  /* 確保對話區域有足夠空間 */
+  flex-grow: 1;
 }
 
 .messages-container::-webkit-scrollbar {
@@ -300,7 +345,7 @@
 }
 
 .input-container {
-  padding: 20px;
+  padding: 15px 20px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 0 0 20px 20px;
   border-top: 2px solid #e0e0e0;
@@ -488,10 +533,10 @@
 
 .photo-prompt {
   text-align: center;
-  padding: 40px 20px;
+  padding: 20px;
   background: rgba(255, 255, 255, 0.9);
   border-radius: 15px;
-  margin: 20px;
+  margin: 15px;
 }
 
 .photo-prompt p {

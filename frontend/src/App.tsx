@@ -9,27 +9,13 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>歷史系 AI 對話機器人</h1>
-        <div className="tabs">
-          <button
-            className={activeTab === 'chat' ? 'active' : ''}
-            onClick={() => setActiveTab('chat')}
-          >
-            對話
-          </button>
-          <button
-            className={activeTab === 'documents' ? 'active' : ''}
-            onClick={() => setActiveTab('documents')}
-          >
-            資料管理
-          </button>
-        </div>
+        <h1 className="app-title">歷史系 AI 對話機器人</h1>
       </header>
       <div className="tab-content" style={{ display: activeTab === 'chat' ? 'flex' : 'none', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <Chat />
+        <Chat activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
-      <div className="tab-content" style={{ display: activeTab === 'documents' ? 'block' : 'none', flex: 1, overflow: 'hidden' }}>
-        <DocumentManager />
+      <div className="tab-content" style={{ display: activeTab === 'documents' ? 'flex' : 'none', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <DocumentManager activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
     </div>
   );

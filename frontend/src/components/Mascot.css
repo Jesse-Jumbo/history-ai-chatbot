@@ -2,14 +2,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 20px;
-  min-height: 300px;
+  padding: 15px 20px;
+  min-height: 120px;
+  flex-shrink: 0;
 }
 
 .mascot {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 120px;
+  height: 120px;
 }
 
 .face {
@@ -33,34 +34,34 @@
 
 .eye {
   position: absolute;
-  width: 30px;
-  height: 30px;
+  width: 18px;
+  height: 18px;
   background: #000;
   border-radius: 50%;
-  top: 60px;
+  top: 36px;
   animation: blink 4s infinite;
 }
 
 .left-eye {
-  left: 50px;
+  left: 30px;
 }
 
 .right-eye {
-  right: 50px;
+  right: 30px;
 }
 
 @keyframes blink {
-  0%, 90%, 100% {
-    height: 30px;
+ 0%, 90%, 100% {
+    height: 18px;
   }
   95% {
-    height: 5px;
+    height: 3px;
   }
 }
 
 .mouth {
   position: absolute;
-  bottom: 50px;
+  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
   transition: all 0.2s ease;
@@ -68,17 +69,17 @@
 
 /* 不同嘴形樣式 */
 .mouth-idle {
-  width: 40px;
-  height: 20px;
-  border: 3px solid #000;
+  width: 24px;
+  height: 12px;
+  border: 2px solid #000;
   border-top: none;
-  border-radius: 0 0 40px 40px;
+  border-radius: 0 0 24px 24px;
 }
 
 .mouth-open {
-  width: 50px;
-  height: 60px;
-  border: 3px solid #000;
+  width: 30px;
+  height: 36px;
+  border: 2px solid #000;
   border-radius: 50%;
   background: #ff6b6b;
 }
@@ -91,17 +92,17 @@
 }
 
 .mouth-half {
-  width: 45px;
-  height: 30px;
-  border: 3px solid #000;
+  width: 27px;
+  height: 18px;
+  border: 2px solid #000;
   border-top: none;
-  border-radius: 0 0 45px 45px;
+  border-radius: 0 0 27px 27px;
   background: #ff6b6b;
 }
 
 .mouth-close {
-  width: 40px;
-  height: 3px;
+  width: 24px;
+  height: 2px;
   background: #000;
   border-radius: 2px;
 }
@@ -115,8 +116,8 @@
 /* 變老照片顯示 */
 .mascot-photo {
   position: relative;
-  width: 300px;
-  height: 300px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -130,23 +131,36 @@
   border-radius: 50%;
 }
 
+/* 變老照片作為頭像背景（如果使用背景圖片方式） */
+.aged-photo-face {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: float 3s ease-in-out infinite;
+  border: 5px solid #fff;
+}
+
 .speaking-indicator {
   position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 5px;
+  right: 5px;
   display: flex;
-  gap: 5px;
+  gap: 3px;
   align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 8px 15px;
-  border-radius: 20px;
+  background: rgba(76, 175, 80, 0.9);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 2px solid #fff;
 }
 
 .speaking-dot {
-  width: 8px;
-  height: 8px;
-  background: #4caf50;
+  width: 6px;
+  height: 6px;
+  background: #fff;
   border-radius: 50%;
   animation: pulse 1.5s ease-in-out infinite;
 }

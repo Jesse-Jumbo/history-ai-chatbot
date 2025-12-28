@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import Mascot from './Mascot';
-import Subtitle from './Subtitle';
 import './Chat.css';
 
 // 從環境變數獲取 API 地址，如果沒有則使用默認值
@@ -24,7 +23,12 @@ interface Message {
   tempId?: number; // 臨時 ID，用於更新加載中的消息
 }
 
-const Chat: React.FC = () => {
+interface ChatProps {
+  activeTab: 'chat' | 'documents';
+  setActiveTab: (tab: 'chat' | 'documents') => void;
+}
+
+const Chat: React.FC<ChatProps> = ({ activeTab, setActiveTab }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>(() => {
     // 從 sessionStorage 載入歷史對話（只在同一個瀏覽器會話中保持）
@@ -106,7 +110,7 @@ const Chat: React.FC = () => {
     };
   }, []);
 
-  // 移除答案中的來源資訊，避免語音讀出來
+  // 移除答案中的來源資訊，避免語音讀出來和重複顯示
   const removeSourceInfo = (text: string): string => {
     if (!text) return text;
     
@@ -115,8 +119,10 @@ const Chat: React.FC = () => {
     let cleaned = text
       // 移除 【來源：xxx】格式
       .replace(/【來源[：:]\s*[^】]+】/g, '')
-      // 移除 (來源: xxx) 格式
+      // 移除 (來源: xxx) 格式（包括中文冒號和英文冒號）
       .replace(/\(來源[：:]\s*[^)]+\)/g, '')
+      // 移除 (來源：xxx) 格式（中文括號）
+      .replace(/（來源[：:]\s*[^）]+）/g, '')
       // 移除 來源：xxx 格式（獨立行）
       .replace(/^來源[：:]\s*[^\n]+$/gm, '')
       // 移除包含「來源」的整行
@@ -129,6 +135,11 @@ const Chat: React.FC = () => {
   };
 
   const speakText = async (text: string) => {
+    if (!text || !text.trim()) {
+      console.warn('speakText: 文本為空，跳過語音輸出');
+      return;
+    }
+
     // 停止之前的語音
     if (audioRef.current) {
       audioRef.current.pause();
@@ -160,7 +171,7 @@ const Chat: React.FC = () => {
 
       audio.onplay = () => {
         setIsSpeaking(true);
-        setCurrentSubtitle(text);
+        setCurrentSubtitle(text); // 用於 Mascot 顯示字幕
       };
 
       audio.onended = () => {
@@ -170,42 +181,57 @@ const Chat: React.FC = () => {
         audioRef.current = null;
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('音訊播放錯誤:', e);
         setIsSpeaking(false);
         setCurrentSubtitle('');
         URL.revokeObjectURL(audioUrl);
         audioRef.current = null;
+        // 回退到瀏覽器語音合成
+        fallbackToBrowserTTS(text);
       };
 
-      await audio.play();
+      await audio.play().catch((error) => {
+        console.error('播放音訊失敗:', error);
+        // 回退到瀏覽器語音合成
+        fallbackToBrowserTTS(text);
+      });
     } catch (error) {
       console.warn('Google TTS 失敗，使用瀏覽器語音合成', error);
       // 備用：使用瀏覽器語音合成
-      if (synth) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-TW';
-        utterance.rate = 0.9;
-        utterance.pitch = 0.8;  // 稍微降低音調模擬老人聲音
-        utterance.volume = 1;
-
-        utterance.onstart = () => {
-          setIsSpeaking(true);
-          setCurrentSubtitle(text);
-        };
-
-        utterance.onend = () => {
-          setIsSpeaking(false);
-          setCurrentSubtitle('');
-        };
-
-        utterance.onerror = () => {
-          setIsSpeaking(false);
-          setCurrentSubtitle('');
-        };
-
-        synth.speak(utterance);
-      }
+      fallbackToBrowserTTS(text);
     }
+  };
+
+  const fallbackToBrowserTTS = (text: string) => {
+    if (!synth) {
+      console.warn('瀏覽器不支援語音合成');
+      return;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-TW';
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;  // 稍微降低音調模擬老人聲音
+    utterance.volume = 1;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setCurrentSubtitle(text); // 用於 Mascot 顯示字幕
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setCurrentSubtitle('');
+    };
+
+    utterance.onerror = (e) => {
+      console.error('語音合成錯誤:', e);
+      setIsSpeaking(false);
+      setCurrentSubtitle('');
+    };
+
+    synth.speak(utterance);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,12 +264,15 @@ const Chat: React.FC = () => {
       const source = response.data.source;
       const sourceDetails = response.data.source_details;
       
-      // 更新剛才添加的消息
+      // 移除答案中的來源資訊（避免在對話中重複顯示）
+      const cleanedAnswer = removeSourceInfo(answer);
+      
+      // 更新剛才添加的消息（使用清理後的答案）
       setMessages(prev => prev.map(msg => 
         (msg as any).tempId === tempMessageId
           ? {
               question,
-              answer,
+              answer: cleanedAnswer, // 使用清理後的答案
               timestamp: new Date(),
               sourceIds: sourceIds || [],
               source: source,
@@ -252,9 +281,8 @@ const Chat: React.FC = () => {
           : msg
       ));
 
-      // 播放語音（移除來源資訊）
-      const textForSpeech = removeSourceInfo(answer);
-      speakText(textForSpeech);
+      // 播放語音（已經移除來源資訊）
+      speakText(cleanedAnswer);
 
     } catch (error) {
       console.error('Error:', error);
@@ -444,12 +472,29 @@ const Chat: React.FC = () => {
   return (
     <div className="chat-container">
       <div className="chat-main">
-        <div className="chat-header-actions">
-          {(messages.length > 0 || agedPhotoUrl) && (
-            <button onClick={clearHistory} className="clear-history-button">
-              🗑️ 清除記錄
+        {/* 標籤按鈕和操作按鈕 - 放在人像上方 */}
+        <div className="tabs-container">
+          <div className="tabs-left">
+            <button
+              className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              對話
             </button>
-          )}
+            <button
+              className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`}
+              onClick={() => setActiveTab('documents')}
+            >
+              資料管理
+            </button>
+          </div>
+          <div className="tabs-right">
+            {(messages.length > 0 || agedPhotoUrl) && (
+              <button onClick={clearHistory} className="clear-history-button">
+                🗑️ 清除記錄
+              </button>
+            )}
+          </div>
         </div>
         <Mascot 
           isSpeaking={isSpeaking} 
@@ -605,8 +650,6 @@ const Chat: React.FC = () => {
           </form>
         </div>
       </div>
-
-      <Subtitle text={currentSubtitle} isVisible={isSpeaking} />
     </div>
   );
 };

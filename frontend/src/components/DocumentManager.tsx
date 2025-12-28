@@ -24,7 +24,12 @@ interface BotConfig {
   role_description?: string;
 }
 
-const DocumentManager: React.FC = () => {
+interface DocumentManagerProps {
+  activeTab: 'chat' | 'documents';
+  setActiveTab: (tab: 'chat' | 'documents') => void;
+}
+
+const DocumentManager: React.FC<DocumentManagerProps> = ({ activeTab, setActiveTab }) => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentGroups, setDocumentGroups] = useState<DocumentGroup[]>([]);
   const [showRoleConfig, setShowRoleConfig] = useState(false);
@@ -185,32 +190,47 @@ const DocumentManager: React.FC = () => {
 
   return (
     <div className="document-manager">
-      <div className="document-header">
-        <h2>歷史資料管理</h2>
-        <div className="header-actions">
-          <button
-            onClick={() => setShowRoleConfig(!showRoleConfig)}
-            className="role-config-button"
-            style={{
-              padding: '10px 20px',
-              background: '#4caf50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              whiteSpace: 'nowrap',
-              width: 'auto',
-              minWidth: 'fit-content'
-            }}
-          >
-            {showRoleConfig ? '取消設定' : '⚙️ 角色設定'}
-          </button>
+      <div className="document-main">
+        {/* 標籤按鈕和操作按鈕 - 放在頂部 */}
+        <div className="tabs-container">
+          <div className="tabs-left">
+            <button
+              className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              對話
+            </button>
+            <button
+              className={`tab-button ${activeTab === 'documents' ? 'active' : ''}`}
+              onClick={() => setActiveTab('documents')}
+            >
+              資料管理
+            </button>
+          </div>
+          <div className="tabs-right">
+            <button
+              onClick={() => setShowRoleConfig(!showRoleConfig)}
+              className="role-config-button"
+              style={{
+                padding: '8px 16px',
+                background: '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap',
+                width: 'auto',
+                minWidth: 'fit-content'
+              }}
+            >
+              {showRoleConfig ? '取消設定' : '⚙️ 角色設定'}
+            </button>
+          </div>
         </div>
-      </div>
 
-      {showRoleConfig && (
-        <form onSubmit={handleRoleConfigSubmit} className="document-form" style={{ marginBottom: '20px', background: '#f9f9f9', padding: '20px', borderRadius: '8px' }}>
+        {showRoleConfig && (
+          <form onSubmit={handleRoleConfigSubmit} className="document-form" style={{ marginBottom: '20px', background: '#f9f9f9', padding: '20px', borderRadius: '8px' }}>
           <h3 style={{ marginTop: 0 }}>🤖 機器人角色設定</h3>
           <div className="form-group">
             <label>角色名稱 * (最多 50 字符)</label>
@@ -265,11 +285,10 @@ const DocumentManager: React.FC = () => {
           >
             {isLoading ? '更新中...' : '更新角色設定'}
           </button>
-        </form>
-      )}
+          </form>
+        )}
 
-
-      <div className="documents-list">
+        <div className="documents-list">
         <h3>現有資料（共 {documents.length} 筆，{documentGroups.length} 個來源）</h3>
         {documents.length === 0 ? (
           <p className="empty-message">尚無資料，請新增歷史資料或上傳 CSV 文件</p>
@@ -343,9 +362,9 @@ const DocumentManager: React.FC = () => {
             })}
           </div>
         )}
-      </div>
+        </div>
 
-      {selectedDocument && (
+        {selectedDocument && (
         <div className="document-modal-overlay" onClick={() => setSelectedDocument(null)}>
           <div className="document-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -377,7 +396,8 @@ const DocumentManager: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
