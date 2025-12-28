@@ -1,0 +1,70 @@
+# FADING_stable
+
+*stable-version about diffusers-library of FADING based on [official FADING repository by MunchkinChen](https://github.com/MunchkinChen/FADING)*
+
+## 🔥 Updates
+- 25-10-05 : Add venv setting instruction
+- 25-06-22 : Add requirements.txt file
+- 24-04-18 : Add stability about accelerate library
+  - Error : is unexpected keyword `logging_dir` in `Accelerator`
+  - Reason : occured in accelerate library mentioned in [issue #1559 in huggingface/accelerate](https://github.com/huggingface/accelerate/issues/1559)
+  - Solution is following [muellerzr comment](https://github.com/huggingface/accelerate/issues/1559#issuecomment-1581556756)
+
+- 24-04-17 : Add stability about diffusers library version without downgrading
+  - Error : is KeyError like `KeyError:'down_cross'` about upper version than diffusers 0.10.0.
+  - Mention : was issued in [issue #2](https://github.com/MunchkinChen/FADING/issues/2).
+  - Reason : occured in prompt2prompt library mentioned in [issue #57 in google/prompt-to-prompt](https://github.com/google/prompt-to-prompt/issues/57).
+  - Solution : is following [anvilarth comments](https://github.com/google/prompt-to-prompt/issues/57#issuecomment-1613729431).
+
+## 🤗 Run FADING with FFHQ sample:
+
+
+### 00. Settings
+
+```cmd
+# repo
+git clone https://github.com/gh-BumsooKim/FADING_stable
+
+# venv
+conda create -n FADING python==3.10.18
+conda activate FADING
+pip install -r requirements.txt
+```
+
+### 01. Downlaod pre-trained model
+
+Download release weigths from official repository [here](https://github.com/MunchkinChen/FADING#available-pretrained-weights), and unzip the downloaded zip file.
+```cmd
+# pretrained weigth (make sure pip install gdown)
+gdown 1galwrcHq1HoZNfOI4jdJJqVs5ehB_dvO
+
+# unzip
+unzip finetune_double_prompt_150_random.zip
+rm finetune_double_prompt_150_random.zip 
+```
+
+Unzipped folder should be located as:
+```
+FADING_stable
+├───FADING_util
+├───finetune_double_prompt_150_random # this is the unzipped pre-trained model folder
+├───input_sample
+...
+```
+
+### 02. Run face editing
+
+For test, all the things (input image, target age, gender and so on) is pre-allocated in shell file. You can easily run FADING with prepared code as:
+
+```
+sh run_FADING.sh
+```
+
+### 03. Outputs
+
+you can see the results in `./output_samples/[FILE_NAME]_[TARGET_AGE].png`
+
+
+## ETC
+
+For detailed instructions or training commands, please refer the [official repository](https://github.com/MunchkinChen/FADING).

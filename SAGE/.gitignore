@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+models/*.pt
+models/*.dat
+models/*.pth
+models/*.zip
+models/finetune_double_prompt_150_random/
+models/pretrained_models/
+models/__MACOSX/
+assets/captured/*
+assets/aged/*
+!assets/captured/.gitkeep
+!assets/aged/.gitkeep
+data/
+
+# Windows artifacts
+nul
+
+# Additional venvs
+SAGEvenv/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest
+.pytest_cache/

@@ -1,0 +1,52 @@
+# =============================================================================
+# SAGE - Self-Aging Generative Experience
+# Windows Environment Setup
+# =============================================================================
+
+# Core Dependencies
+numpy>=1.21.0
+scipy>=1.7.0
+Pillow>=9.0.0
+opencv-python>=4.5.0
+tqdm>=4.60.0
+
+# -----------------------------------------------------------------------------
+# [重要] PyTorch GPU 安裝說明
+# 為了確保能用到顯卡，請不要透過此檔案安裝 torch。
+# 請在終端機手動執行以下指令 (依據你的 CUDA 版本選一個)：
+#
+# CUDA 11.8:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# CUDA 12.1 (推薦/最穩):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# CUDA 12.4 (RTX 40系列):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# -----------------------------------------------------------------------------
+# torch>=2.0.0      <-- 已註解，請手動安裝
+# torchvision>=0.15.0  <-- 已註解，請手動安裝
+
+# Face Detection & Alignment
+# 注意：在 Windows 安裝 dlib 前，必須安裝 "Visual Studio C++ Build Tools"
+mediapipe>=0.10.8
+dlib>=19.24.0
+
+# Model Download & Management
+gdown>=4.7.0
+
+# API & Web Server
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+httpx>=0.25.0
+
+# Utilities
+python-dotenv>=1.0.0
+matplotlib>=3.5.0
+tensorboard>=2.10.0
+
+# Build Tools
+ninja>=1.11.0
+
+# Development & Testing
+pytest>=7.4.0
+black>=23.0.0
