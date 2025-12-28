@@ -88,10 +88,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="歷史系 AI 對話機器人", lifespan=lifespan)
 
 
-# CORS 設定
+# CORS 設定（允許跨域訪問）
+# 從環境變數讀取允許的來源，如果沒有則允許所有來源（開發環境）
+ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+if ALLOWED_ORIGINS == ["*"]:
+    # 開發環境：允許所有來源
+    allow_origins = ["*"]
+else:
+    # 生產環境：只允許指定的來源
+    allow_origins = [origin.strip() for origin in ALLOWED_ORIGINS]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
